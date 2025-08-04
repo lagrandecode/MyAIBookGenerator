@@ -7,6 +7,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import BookGenerator from './pages/BookGenerator';
+import BookLibrary from './pages/BookLibrary';
 import BookEditor from './pages/BookEditor';
 import BookViewer from './pages/BookViewer';
 import Profile from './pages/Profile';
@@ -85,6 +86,14 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <BookGenerator />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/library" 
+            element={
+              <ProtectedRoute>
+                <BookLibrary />
               </ProtectedRoute>
             } 
           />

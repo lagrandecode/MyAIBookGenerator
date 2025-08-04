@@ -6,7 +6,7 @@ const compression = require('compression');
 const morgan = require('morgan');
 require('dotenv').config();
 
-// const mongoose = require('mongoose');
+const mongoose = require('mongoose');
 
 const authRoutes = require('./routes/auth');
 const bookRoutes = require('./routes/books');
@@ -42,15 +42,12 @@ app.use(cors({
 app.use(morgan('combined'));
 
 // Database connection
-// mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ai-book-generator', {
-//   useNewUrlParser: true,
-//   useUnifiedTopology: true,
-// })
-// .then(() => console.log('Connected to MongoDB'))
-// .catch(err => console.error('MongoDB connection error:', err));
-
-// Mock database connection message
-console.log('Mock: Database connection disabled for demo');
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ai-book-generator', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => console.log('✅ Connected to MongoDB Atlas'))
+.catch(err => console.error('❌ MongoDB connection error:', err));
 
 // Routes
 app.use('/api/auth', authRoutes);

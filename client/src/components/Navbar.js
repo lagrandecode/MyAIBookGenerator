@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const Navbar = () => {
   const location = useLocation();
+  const { user, logout } = useAuth();
   const [theme, setTheme] = useState(() => {
     // Check localStorage or default to 'light'
     return localStorage.getItem('theme') || 'light';
@@ -19,6 +21,10 @@ const Navbar = () => {
 
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
+
+  const handleLogout = () => {
+    logout();
   };
 
   return (
@@ -47,13 +53,39 @@ const Navbar = () => {
           >
             Pricing
           </Link>
-          <Link
-            to="/login"
-            className={`px-3 py-2 rounded-md text-base font-medium transition-colors duration-150 ${location.pathname === '/login' ? 'bg-blue-600 dark:bg-blue-500 text-white font-bold shadow' : 'text-gray-700 dark:text-gray-200 hover:bg-blue-600 dark:hover:bg-blue-500 hover:text-white'}`}
-            style={{ fontFamily: 'Space Grotesk, Arial, sans-serif' }}
-          >
-            Login
-          </Link>
+          
+          {user ? (
+            <div className="flex items-center space-x-4">
+              <Link
+                to="/dashboard"
+                className={`px-3 py-2 rounded-md text-base font-medium transition-colors duration-150 ${location.pathname === '/dashboard' ? 'bg-blue-600 dark:bg-blue-500 text-white font-bold shadow' : 'text-gray-700 dark:text-gray-200 hover:bg-blue-600 dark:hover:bg-blue-500 hover:text-white'}`}
+                style={{ fontFamily: 'Space Grotesk, Arial, sans-serif' }}
+              >
+                Dashboard
+              </Link>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-700 dark:text-gray-200 font-medium">
+                  Welcome, {user.username}!
+                </span>
+                <button
+                  onClick={handleLogout}
+                  className="px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-red-50 dark:hover:bg-red-900 hover:text-red-700 dark:hover:text-red-300 transition-colors duration-150"
+                  style={{ fontFamily: 'Space Grotesk, Arial, sans-serif' }}
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+          ) : (
+            <Link
+              to="/login"
+              className={`px-3 py-2 rounded-md text-base font-medium transition-colors duration-150 ${location.pathname === '/login' ? 'bg-blue-600 dark:bg-blue-500 text-white font-bold shadow' : 'text-gray-700 dark:text-gray-200 hover:bg-blue-600 dark:hover:bg-blue-500 hover:text-white'}`}
+              style={{ fontFamily: 'Space Grotesk, Arial, sans-serif' }}
+            >
+              Login
+            </Link>
+          )}
+          
           {/* Theme Toggle Button */}
           <button
             onClick={toggleTheme}

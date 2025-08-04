@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { BookOpen, Plus, CreditCard } from 'lucide-react';
 
 const Dashboard = () => {
   return (
@@ -11,7 +12,10 @@ const Dashboard = () => {
       
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="card p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Generate New Book</h3>
+          <div className="flex items-center mb-4">
+            <Plus className="h-6 w-6 text-blue-600 mr-3" />
+            <h3 className="text-lg font-semibold text-gray-900">Generate New Book</h3>
+          </div>
           <p className="text-gray-600 mb-4">Create a new book with AI assistance</p>
           <Link to="/generate" className="btn-primary">
             Start Creating
@@ -19,13 +23,21 @@ const Dashboard = () => {
         </div>
         
         <div className="card p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">My Books</h3>
-          <p className="text-gray-600 mb-4">View and manage your generated books</p>
-          <div className="text-gray-500">Coming soon...</div>
+          <div className="flex items-center mb-4">
+            <BookOpen className="h-6 w-6 text-green-600 mr-3" />
+            <h3 className="text-lg font-semibold text-gray-900">My Book Library</h3>
+          </div>
+          <p className="text-gray-600 mb-4">View, download, and manage your generated books</p>
+          <Link to="/library" className="btn-secondary">
+            View Library
+          </Link>
         </div>
         
         <div className="card p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Credits</h3>
+          <div className="flex items-center mb-4">
+            <CreditCard className="h-6 w-6 text-purple-600 mr-3" />
+            <h3 className="text-lg font-semibold text-gray-900">Credits</h3>
+          </div>
           <p className="text-gray-600 mb-4">Manage your book generation credits</p>
           <Link to="/pricing" className="btn-secondary">
             Buy Credits

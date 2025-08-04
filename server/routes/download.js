@@ -1,177 +1,157 @@
 const express = require('express');
-const router = express.Router();
-const auth = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 const Book = require('../models/Book');
-const storageService = require('../services/storageService');
+const fs = require('fs');
+const path = require('path');
 
-// Download book in PDF format
-router.get('/pdf/:bookId', auth, async (req, res) => {
+const router = express.Router();
+
+// Download book as PDF or DOCX
+router.post('/book/:bookId', auth, async (req, res) => {
   try {
     const { bookId } = req.params;
-    
+    const { format = 'PDF' } = req.body;
+
+    // Find the book in database
     const book = await Book.findById(bookId);
     if (!book) {
       return res.status(404).json({ error: 'Book not found' });
     }
 
-    if (book.user.toString() !== req.user._id.toString()) {
+    // Check if user owns this book
+    if (book.userId.toString() !== req.user.id) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    // Check if PDF already exists
-    if (book.files.pdf && book.files.pdf.url) {
-      const downloadUrl = await storageService.generatePresignedUrl(book.files.pdf.key);
-      return res.json({ downloadUrl });
+    // Generate file content based on format
+    let fileContent, fileName, mimeType;
+
+    if (format.toUpperCase() === 'PDF') {
+      // For PDF, we'll create a simple HTML that can be converted
+      fileContent = generatePDFContent(book);
+      fileName = `${book.title.replace(/[^a-zA-Z0-9]/g, '_')}.html`;
+      mimeType = 'text/html';
+    } else if (format.toUpperCase() === 'DOCX') {
+      // For DOCX, we'll create a simple text format
+      fileContent = generateDOCXContent(book);
+      fileName = `${book.title.replace(/[^a-zA-Z0-9]/g, '_')}.txt`;
+      mimeType = 'text/plain';
+    } else {
+      return res.status(400).json({ error: 'Unsupported format. Use PDF or DOCX' });
     }
 
-    // Mock PDF generation for demo
-    console.log(`Mock: Generating PDF for book ${bookId}`);
+    // Set headers for file download
+    res.setHeader('Content-Type', mimeType);
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
     
-    const mockPdfUrl = `https://mock-s3.amazonaws.com/books/${bookId}/book.pdf`;
-    
-    // Update book with PDF file info
-    book.files.pdf = {
-      url: mockPdfUrl,
-      key: `books/${bookId}/book.pdf`,
-      size: 1024 * 1024, // 1MB
-      generatedAt: new Date()
-    };
-    await book.save();
+    // Send the file content
+    res.send(fileContent);
 
-    res.json({ 
-      message: 'PDF generated successfully',
-      downloadUrl: mockPdfUrl 
-    });
   } catch (error) {
-    console.error('PDF download error:', error);
-    res.status(500).json({ error: 'Failed to generate PDF' });
+    console.error('Download error:', error);
+    res.status(500).json({ error: 'Failed to download book' });
   }
 });
 
-// Download book in DOCX format
-router.get('/docx/:bookId', auth, async (req, res) => {
+// Generate PDF content (HTML format that can be converted to PDF)
+function generatePDFContent(book) {
+  const content = book.content || 'No content available';
+  
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>${book.title}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        h2 { color: #34495e; margin-top: 30px; }
+        h3 { color: #7f8c8d; }
+        .author { font-style: italic; color: #7f8c8d; margin-bottom: 20px; }
+        .metadata { background: #ecf0f1; padding: 15px; border-radius: 5px; margin: 20px 0; }
+        .metadata p { margin: 5px 0; }
+        pre { background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; }
+        code { background: #f1f2f6; padding: 2px 4px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <h1>${book.title}</h1>
+    <div class="author">By ${book.author}</div>
+    
+    <div class="metadata">
+        <p><strong>Language:</strong> ${book.language}</p>
+        <p><strong>Level:</strong> ${book.level}</p>
+        <p><strong>Style:</strong> ${book.style}</p>
+        <p><strong>Pages:</strong> ${book.numberOfPages || 'N/A'}</p>
+        <p><strong>Generated:</strong> ${new Date(book.createdAt).toLocaleDateString()}</p>
+    </div>
+
+    <div class="content">
+        ${content.replace(/\n/g, '<br>').replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')}
+    </div>
+</body>
+</html>`;
+}
+
+// Generate DOCX content (simple text format)
+function generateDOCXContent(book) {
+  const content = book.content || 'No content available';
+  
+  return `
+${book.title}
+By ${book.author}
+
+METADATA:
+- Language: ${book.language}
+- Level: ${book.level}
+- Style: ${book.style}
+- Pages: ${book.numberOfPages || 'N/A'}
+- Generated: ${new Date(book.createdAt).toLocaleDateString()}
+
+CONTENT:
+${content}
+
+---
+Generated by AI Book Generator
+${new Date().toISOString()}`;
+}
+
+// Get user's book library
+router.get('/library', auth, async (req, res) => {
   try {
-    const { bookId } = req.params;
-    
-    const book = await Book.findById(bookId);
-    if (!book) {
-      return res.status(404).json({ error: 'Book not found' });
-    }
+    const books = await Book.find({ userId: req.user.id })
+      .select('title author language level style numberOfPages createdAt status')
+      .sort({ createdAt: -1 });
 
-    if (book.user.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-
-    // Check if DOCX already exists
-    if (book.files.docx && book.files.docx.url) {
-      const downloadUrl = await storageService.generatePresignedUrl(book.files.docx.key);
-      return res.json({ downloadUrl });
-    }
-
-    // Mock DOCX generation for demo
-    console.log(`Mock: Generating DOCX for book ${bookId}`);
-    
-    const mockDocxUrl = `https://mock-s3.amazonaws.com/books/${bookId}/book.docx`;
-    
-    // Update book with DOCX file info
-    book.files.docx = {
-      url: mockDocxUrl,
-      key: `books/${bookId}/book.docx`,
-      size: 512 * 1024, // 512KB
-      generatedAt: new Date()
-    };
-    await book.save();
-
-    res.json({ 
-      message: 'DOCX generated successfully',
-      downloadUrl: mockDocxUrl 
-    });
+    res.json({ books });
   } catch (error) {
-    console.error('DOCX download error:', error);
-    res.status(500).json({ error: 'Failed to generate DOCX' });
+    console.error('Library error:', error);
+    res.status(500).json({ error: 'Failed to fetch library' });
   }
 });
 
-// Download book in EPUB format
-router.get('/epub/:bookId', auth, async (req, res) => {
+// Delete a book from library
+router.delete('/book/:bookId', auth, async (req, res) => {
   try {
     const { bookId } = req.params;
-    
+
     const book = await Book.findById(bookId);
     if (!book) {
       return res.status(404).json({ error: 'Book not found' });
     }
 
-    if (book.user.toString() !== req.user._id.toString()) {
+    // Check if user owns this book
+    if (book.userId.toString() !== req.user.id) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    // Check if EPUB already exists
-    if (book.files.epub && book.files.epub.url) {
-      const downloadUrl = await storageService.generatePresignedUrl(book.files.epub.key);
-      return res.json({ downloadUrl });
-    }
+    await Book.findByIdAndDelete(bookId);
+    res.json({ message: 'Book deleted successfully' });
 
-    // Mock EPUB generation for demo
-    console.log(`Mock: Generating EPUB for book ${bookId}`);
-    
-    const mockEpubUrl = `https://mock-s3.amazonaws.com/books/${bookId}/book.epub`;
-    
-    // Update book with EPUB file info
-    book.files.epub = {
-      url: mockEpubUrl,
-      key: `books/${bookId}/book.epub`,
-      size: 768 * 1024, // 768KB
-      generatedAt: new Date()
-    };
-    await book.save();
-
-    res.json({ 
-      message: 'EPUB generated successfully',
-      downloadUrl: mockEpubUrl 
-    });
   } catch (error) {
-    console.error('EPUB download error:', error);
-    res.status(500).json({ error: 'Failed to generate EPUB' });
-  }
-});
-
-// Get download status
-router.get('/status/:bookId', auth, async (req, res) => {
-  try {
-    const { bookId } = req.params;
-    
-    const book = await Book.findById(bookId);
-    if (!book) {
-      return res.status(404).json({ error: 'Book not found' });
-    }
-
-    if (book.user.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-
-    const status = {
-      pdf: {
-        available: !!book.files.pdf?.url,
-        size: book.files.pdf?.size,
-        generatedAt: book.files.pdf?.generatedAt
-      },
-      docx: {
-        available: !!book.files.docx?.url,
-        size: book.files.docx?.size,
-        generatedAt: book.files.docx?.generatedAt
-      },
-      epub: {
-        available: !!book.files.epub?.url,
-        size: book.files.epub?.size,
-        generatedAt: book.files.epub?.generatedAt
-      }
-    };
-
-    res.json(status);
-  } catch (error) {
-    console.error('Download status error:', error);
-    res.status(500).json({ error: 'Failed to get download status' });
+    console.error('Delete error:', error);
+    res.status(500).json({ error: 'Failed to delete book' });
   }
 });
 

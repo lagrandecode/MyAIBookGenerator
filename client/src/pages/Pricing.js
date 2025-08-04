@@ -1,7 +1,19 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const Pricing = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const handleStarterClick = () => {
+    if (user) {
+      navigate('/dashboard');
+    } else {
+      navigate('/login');
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="text-center mb-12">
@@ -10,16 +22,26 @@ const Pricing = () => {
       </div>
       
       <div className="grid md:grid-cols-3 gap-8">
-        <div className="card p-8 text-center">
+        <div className="card p-8 text-center border-2 border-green-500 relative">
+          <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+            <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+              FREE
+            </span>
+          </div>
           <h3 className="text-xl font-semibold text-gray-900 mb-4">Starter</h3>
-          <div className="text-3xl font-bold text-blue-600 mb-4">$9.99</div>
+          <div className="text-3xl font-bold text-green-600 mb-4">$0</div>
           <ul className="text-gray-600 mb-6 space-y-2">
-            <li>5 Book Generations</li>
+            <li>3 Book Generations</li>
             <li>Basic Templates</li>
             <li>PDF Export</li>
             <li>Email Support</li>
           </ul>
-          <button className="btn-secondary w-full">Coming Soon</button>
+          <button 
+            onClick={handleStarterClick}
+            className="btn-primary w-full"
+          >
+            {user ? 'Start Creating' : 'Get Started'}
+          </button>
         </div>
         
         <div className="card p-8 text-center border-2 border-blue-500">
@@ -32,7 +54,7 @@ const Pricing = () => {
             <li>AI Cover Generation</li>
             <li>Priority Support</li>
           </ul>
-          <button className="btn-primary w-full">Coming Soon</button>
+          <button className="btn-secondary w-full">Coming Soon</button>
         </div>
         
         <div className="card p-8 text-center">

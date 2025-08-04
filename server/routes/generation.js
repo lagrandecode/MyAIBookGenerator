@@ -8,10 +8,13 @@ const router = express.Router();
 // Generate a complete book
 router.post('/book', auth, async (req, res) => {
   try {
+    console.log('📦 Request payload:', req.body);
+    console.log('🔍 User ID:', req.user.id);
+    
     const {
       title,
       author,
-      language,
+      programming_language,
       level,
       style,
       goals,
@@ -26,16 +29,19 @@ router.post('/book', auth, async (req, res) => {
     } = req.body;
 
     // Validate required fields
-    if (!title || !author || !language || !goals || !topics || topics.length === 0) {
+    if (!title || !author || !programming_language || !level || !style || !goals || !topics) {
+      console.log('❌ Missing required fields:', { title, author, programming_language, level, style, goals, topics });
       return res.status(400).json({ error: 'Missing required fields' });
     }
+
+    console.log('✅ All required fields present');
 
     // Create book record in database
     const book = new Book({
       userId: req.user.id,
       title,
       author,
-      language,
+      programming_language,
       level,
       style,
       goals,
@@ -51,13 +57,15 @@ router.post('/book', auth, async (req, res) => {
       generationStartTime: new Date()
     });
 
+    console.log('💾 Saving book to database...');
     await book.save();
+    console.log('✅ Book saved with ID:', book._id);
 
     // Generate book content using ChatGPT
     const bookData = {
       title,
       author,
-      language,
+      programming_language,
       level,
       style,
       goals,
@@ -70,19 +78,28 @@ router.post('/book', auth, async (req, res) => {
       tone
     };
 
-    console.log('Generating book content with ChatGPT...');
+    console.log('🤖 Generating book content with ChatGPT...');
+    console.log('📝 Book data sent to ChatGPT:', bookData);
     
-    const result = await chatgptService.generateBookContent(bookData);
+    let result;
+    try {
+      result = await chatgptService.generateBookContent(bookData);
+      console.log('📊 ChatGPT result:', { success: result.success, contentLength: result.content?.length || 0 });
+    } catch (error) {
+      console.error('💥 ChatGPT service error:', error);
+      throw error;
+    }
 
     if (result.success) {
       // Update book with generated content
+      console.log('✅ ChatGPT generation successful, updating book...');
       book.content = result.content;
       book.status = 'completed';
       book.generationEndTime = new Date();
       book.metadata = result.metadata;
       await book.save();
 
-      console.log('Book generated successfully:', book._id);
+      console.log('🎉 Book generated successfully:', book._id);
 
       res.json({
         success: true,
@@ -92,7 +109,7 @@ router.post('/book', auth, async (req, res) => {
           id: book._id,
           title: book.title,
           author: book.author,
-          language: book.language,
+          programming_language: book.programming_language,
           level: book.level,
           status: book.status,
           createdAt: book.createdAt
@@ -100,6 +117,7 @@ router.post('/book', auth, async (req, res) => {
       });
     } else {
       // Mark book as failed
+      console.log('❌ ChatGPT generation failed, marking book as failed...');
       book.status = 'failed';
       book.generationEndTime = new Date();
       await book.save();
@@ -109,8 +127,30 @@ router.post('/book', auth, async (req, res) => {
     }
 
   } catch (error) {
-    console.error('Book generation error:', error);
-    res.status(500).json({ error: 'Failed to generate book. Please try again.' });
+    console.error('💥 Book generation error:', error);
+    console.error('📋 Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    
+    // Check if it's an OpenAI quota error
+    if (error.message && error.message.includes('quota')) {
+      res.status(500).json({ 
+        error: 'OpenAI API quota exceeded. Please add credits to your account or try again later.',
+        details: 'Your OpenAI account has run out of credits. Visit https://platform.openai.com/account/billing to add more credits.'
+      });
+    } else if (error.message && error.message.includes('429')) {
+      res.status(500).json({ 
+        error: 'OpenAI API rate limit exceeded. Please wait a moment and try again.',
+        details: 'Too many requests to OpenAI API. Please wait a few minutes before trying again.'
+      });
+    } else {
+      res.status(500).json({ 
+        error: 'Failed to generate book. Please try again.',
+        details: error.message || 'Unknown error occurred'
+      });
+    }
   }
 });
 
@@ -149,7 +189,24 @@ router.post('/test', async (req, res) => {
 
   } catch (error) {
     console.error('Test error:', error);
-    res.status(500).json({ error: 'Test failed' });
+    
+    // Check if it's an OpenAI quota error
+    if (error.message && error.message.includes('quota')) {
+      res.status(500).json({ 
+        error: 'OpenAI API quota exceeded. Please add credits to your account.',
+        details: 'Your OpenAI account has run out of credits. Visit https://platform.openai.com/account/billing to add more credits.'
+      });
+    } else if (error.message && error.message.includes('429')) {
+      res.status(500).json({ 
+        error: 'OpenAI API rate limit exceeded. Please wait a moment and try again.',
+        details: 'Too many requests to OpenAI API. Please wait a few minutes before trying again.'
+      });
+    } else {
+      res.status(500).json({ 
+        error: 'Test failed',
+        details: error.message || 'Unknown error occurred'
+      });
+    }
   }
 });
 

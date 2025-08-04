@@ -18,7 +18,7 @@ const bookSchema = new mongoose.Schema({
     trim: true,
     maxlength: 100
   },
-  language: {
+  programming_language: {
     type: String,
     required: true,
     trim: true
@@ -78,7 +78,7 @@ const bookSchema = new mongoose.Schema({
   },
   content: {
     type: String,
-    required: true
+    required: false
   },
   status: {
     type: String,

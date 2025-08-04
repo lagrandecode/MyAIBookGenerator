@@ -10,7 +10,7 @@ class ChatGPTService {
       const {
         title,
         author,
-        language,
+        programming_language,
         level,
         style,
         goals,
@@ -28,7 +28,7 @@ class ChatGPTService {
       const prompt = this.createBookPrompt({
         title,
         author,
-        language,
+        programming_language,
         level,
         style,
         goals,
@@ -69,7 +69,7 @@ class ChatGPTService {
         metadata: {
           title,
           author,
-          language,
+          programming_language,
           level,
           topics,
           format
@@ -89,7 +89,7 @@ class ChatGPTService {
     const {
       title,
       author,
-      language,
+      programming_language,
       level,
       style,
       goals,
@@ -106,7 +106,7 @@ class ChatGPTService {
 Create a comprehensive programming book titled "${title}" by ${author}.
 
 BOOK SPECIFICATIONS:
-- Programming Language: ${language}
+- Programming Language: ${programming_language}
 - Difficulty Level: ${level}
 - Writing Style: ${style}
 - Tone: ${tone}
@@ -135,10 +135,10 @@ Please generate the complete book content following these specifications. Make i
     `;
   }
 
-  async generateChapterContent(topic, language, level, examplesCount, tone) {
+  async generateChapterContent(topic, programming_language, level, examplesCount, tone) {
     try {
       const prompt = `
-Write a comprehensive chapter about "${topic}" for a ${level} level ${language} programming book.
+Write a comprehensive chapter about "${topic}" for a ${level} level ${programming_language} programming book.
 
 Requirements:
 - Explain the concept clearly for ${level} learners

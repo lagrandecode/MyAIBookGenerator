@@ -15,7 +15,7 @@ const BookGenerator = () => {
   const [formData, setFormData] = useState({
     title: '',
     author: user?.username || '',
-    language: '',
+    programming_language: '',
     level: 'Beginner',
     style: 'Practical & Tutorial-based',
     goals: '',
@@ -98,7 +98,7 @@ const BookGenerator = () => {
       return;
     }
 
-    if (!formData.language.trim()) {
+    if (!formData.programming_language.trim()) {
       setError('Programming language is required');
       setLoading(false);
       return;
@@ -231,8 +231,8 @@ const BookGenerator = () => {
                 </label>
                 <input
                   type="text"
-                  name="language"
-                  value={formData.language}
+                  name="programming_language"
+                  value={formData.programming_language}
                   onChange={handleChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-600"
                   placeholder="e.g., Python 3, JavaScript, Java"
